@@ -1,13 +1,5 @@
-# FemRefine RV
+# Refemv RV32I
 
-This is a simple CPU implements risc-v 32i.
-
-## Status
-
-- ld sd undo.
-
-## Reference
-- https://nju-projectn.github.io/dlco-lecture-note/_images/rv32isingle.png
-- https://nju-projectn.github.io/dlco-lecture-note/exp/10.html
-- https://nju-projectn.github.io/dlco-lecture-note/exp/11.html
-- [BRAM](https://github.com/wuxx/icesugar/tree/master/src/basic/verilog/bram)
+- This is a simple CPU implements risc-v 32i.
+- It is just my refine product and notes of FemtoRV learning.
+- Use on your own risk.

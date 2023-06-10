@@ -4,7 +4,7 @@
 `include "inc/define.vh"
 
 
-module mcu(
+module refemv(
     input clk, rstn,
     input [`BUS] mem_rdata,
     // input mem_rbusy, mem_wbusy,
@@ -237,18 +237,18 @@ end
 `ifdef BENCH
 always @(posedge clk) begin
     $display("#%0000h  (%000d)", pc, regfile[2]);
-    case (1'b1)
-        isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
-        isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);
-        isBranch: $display("BRANCH");
-        isJAL:    $display("JAL");
-        isJALR:   $display("JALR");
-        isAUIPC:  $display("AUIPC");
-        isLUI:    $display("LUI");	
-        isLoad:   $display("LOAD");
-        isStore:  $display("STORE");
-        isSYSTEM: $display("SYSTEM");
-    endcase
+    // case (1'b1)
+    //     isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
+    //     isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);
+    //     isBranch: $display("BRANCH");
+    //     isJAL:    $display("JAL");
+    //     isJALR:   $display("JALR");
+    //     isAUIPC:  $display("AUIPC");
+    //     isLUI:    $display("LUI");	
+    //     isLoad:   $display("LOAD");
+    //     isStore:  $display("STORE");
+    //     isSYSTEM: $display("SYSTEM");
+    // endcase
 end
 `endif
 
