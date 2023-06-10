@@ -6,9 +6,10 @@
 
 module mcu(
     input clk, rstn,
-    // input [`BUS] mem_rdata,
+    input [`BUS] mem_rdata,
     // input mem_rbusy, mem_wbusy,
-    // output [`BUS] mem_addr, mem_wdata,
+    output [`BUS] mem_addr, mem_wdata,
+    output mem_rstrb, mem_wstrb,
     // output [3:0] mem_wmask, mem_rmask,
     output [`BUS] a0  // for debug
 );
@@ -22,11 +23,13 @@ wire [`BUS] wdata;
 wire [`BUS] aluain, alubin;
 wire we_reg;
 
+
 /*
     Decoder
     *real time*
     because of the elegance in the riscv design.
 */
+reg [`BUS] instr;
 wire isALUreg  =  (instr[6:0] == 7'b0110011); // rd <- rs1 OP rs2   
 wire isALUimm  =  (instr[6:0] == 7'b0010011); // rd <- rs1 OP Iimm
 wire isBranch  =  (instr[6:0] == 7'b1100011); // if(rs1 OP rs2) PC<-PC+Bimm
@@ -59,18 +62,8 @@ reg [`BUS] pc;
 initial pc = 0;
 
 /*
-    Hardcoded instr_rom
-*/
-reg [7:0] instr_rom [0:255];
-reg [`BUS] instr;
-initial begin
-    $readmemh("build/prog.hex", instr_rom);
-    instr = 0;
-end
-
-/*
     Register file
-    read: real time
+    read: real timem
     write: 1 clk
 */
 reg [`BUS] regfile [0:31];
@@ -137,13 +130,17 @@ assign we_reg = (state == WRITE_BACK) &&
     FSM
 */
 localparam INSTR_FETCH = 0;
-localparam WAIT_REG = 1;
-localparam EXECUTE = 2;
-localparam MEM_ACCESS = 3;
-localparam WRITE_BACK = 4;
+localparam WAIT_INSTR = 1;
+localparam WAIT_REG = 2;
+localparam EXECUTE = 3;
+localparam MEM_ACCESS = 4;
+localparam WRITE_BACK = 5;
 
 reg [2:0] state;
 initial state = INSTR_FETCH;
+
+assign mem_addr = pc;
+assign mem_rstrb = (state == INSTR_FETCH);
 
 // TODO: (* parallel_case *) can be used to create pipelined FSM
 // TODO: But now, we use a multi cycle CPU
@@ -159,7 +156,10 @@ always @(posedge clk or negedge rstn) begin
     end else begin
         case (state)
             INSTR_FETCH: begin
-                instr <= {instr_rom[pc+3], instr_rom[pc+2], instr_rom[pc+1], instr_rom[pc]};
+                state <= WAIT_INSTR;
+            end
+            WAIT_INSTR: begin
+                instr <= mem_rdata;
                 state <= WAIT_REG;
             end
             WAIT_REG: begin

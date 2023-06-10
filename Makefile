@@ -4,7 +4,7 @@ ICELINK_DIR = E:/
 ${warning iCELink path: $(ICELINK_DIR)}
 
 filename = ./src/datapath.v
-bench_target = ./test/mcu_tb.v
+bench_target = ./test/soc_tb.v
 bench_out = ./build/bench.vvp
 
 all: bench wave
@@ -15,7 +15,7 @@ data: bin/instr.S
 	llvm-readobj -a build/prog.elf > build/prog.header
 	llvm-objdump -d build/prog.elf > build/prog.asm
 	llvm-objcopy -O binary build/prog.elf build/prog.bin
-	xxd -p -c 1 build/prog.bin > build/prog.hex
+	xxd -p -c 4 build/prog.bin > build/prog.hex
 
 cdata: bin/prog.c
 	clang -target riscv32 -march=rv32i -o build/entry.o -c bin/prog.S
@@ -24,7 +24,7 @@ cdata: bin/prog.c
 	llvm-readobj -a build/prog.elf > build/prog.header
 	llvm-objdump -d build/prog.elf > build/prog.asm
 	llvm-objcopy -O binary build/prog.elf build/prog.bin
-	xxd -p -c 1 build/prog.bin > build/prog.hex
+	xxd -p -c 4 build/prog.bin > build/prog.hex
 
 
 .PHONY: bench wave build env flash

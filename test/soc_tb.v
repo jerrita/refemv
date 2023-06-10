@@ -1,19 +1,20 @@
 `timescale 1ns/1ps
+`include "inc/define.vh"
 
-module rv_tb ();
+module soc_tb ();
 
-reg CLOCK_50;
+reg clk;
 reg RST_N;
 wire [7:0] LED;
 
 initial begin
     $dumpfile("build/bench.vcd");
-    $dumpvars(0, rv_tb);
+    $dumpvars(0, soc_tb);
 end
 
 initial begin
-    CLOCK_50 = 1'b0;
-    forever #10 CLOCK_50 = ~CLOCK_50;
+    clk = 1'b0;
+    forever #2 clk = ~clk;
 end
 
 initial begin
@@ -24,9 +25,11 @@ initial begin
     #1000 $finish;
 end
 
-soc mycpu(
-    .clk(CLOCK_50),
-    .rst(~RST_N)
+soc soc_inst(
+    .clk(clk),
+    .rstn(RST_N),
+    .LED(LED)
 );
+
 
 endmodule
