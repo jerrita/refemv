@@ -3,16 +3,16 @@ module soc(
     output [7:0] LED
 );
 
-wire [31:0] a0;
+wire [31:0] dbg;
 wire [31:0] mem_rdata, mem_wdata, addr, rdata;
 wire [3:0] wmask;
 wire rstrb;
-assign LED = a0[7:0];
+assign LED = dbg[7:0];
 
 mcu mcu_inst(
     .clk(clk),
     .rstn(rstn),
-    .a0(a0),
+    .s7(dbg),
     .mem_rdata(mem_rdata),
     .mem_wdata(mem_wdata),
     .mem_addr(addr),

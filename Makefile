@@ -1,5 +1,5 @@
 pcf_file = res/io.pcf
-ICELINK_DIR = E:/
+ICELINK_DIR = /Volumes/iCELink
 # ICELINK_DIR=$(shell df | grep iCELink | awk '{print $$6}')
 ${warning iCELink path: $(ICELINK_DIR)}
 

@@ -5,8 +5,15 @@ int add(int a, int b)
 
 void start()
 {
-    int a = 30, b = 60;
-    int c = add(a, b);
+    int a = 0;
+    for (int i = 0; i < 114514; i++) {
+        a = add(a, 1);
+        // move a to s7
+        asm("mv s7, %0" : : "r"(a));
+
+        // wait sometime
+        for (int j = 0; j < 114514; j++);
+    }
 
     for (;;);
 }

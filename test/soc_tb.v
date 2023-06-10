@@ -22,7 +22,7 @@ initial begin
     #10 RST_N = 1'b1;
     // #500 RST_N = 1'b0;
     // #503 RST_N = 1'b1;
-    #1000 $finish;
+    #10000 $finish;
 end
 
 soc soc_inst(
