@@ -7,5 +7,7 @@ __start:
 cmp:
   add a0, a0, a1
   blt a0, a2, cmp
+  # test mem here
+  lw a0, 4(zero)
 loop:
   j loop

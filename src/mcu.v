@@ -76,6 +76,16 @@ initial for (i = 0; i < 32; i = i + 1) begin
     regfile[i] = 0;
 end
 
+
+assign wdata = (isJAL || isJALR) ? pc4 :
+               isLUI             ? immU :
+               isAUIPC           ? pcimm :
+               isLoad            ? mem_load :
+               aluout;
+assign we_reg = (state == WRITE_BACK) && 
+    (isALUreg || isALUimm || isJAL || isJALR || isLUI || isAUIPC || isLoad);
+
+
 // We must read on clk, so it can be synthesized to bram
 always @(posedge clk) begin
     rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
@@ -132,12 +142,24 @@ always @(*) begin
     endcase
 end
 
-assign wdata = (isJAL || isJALR) ? pc4 :
-               isLUI             ? immU :
-               isAUIPC           ? pcimm :
-               aluout;
-assign we_reg = (state == WRITE_BACK) && 
-    (isALUreg || isALUimm || isJAL || isJALR || isLUI || isAUIPC);
+/*
+    Memory
+    connect to outside world
+*/
+wire [`BUS] mem_addr = (state == MEM_ACCESS) ? rs1d + immI : pc;
+wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
+wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
+
+wire mem_byteacc = funct3[1:0] == 2'b00;
+wire mem_halfacc = funct3[1:0] == 2'b01;
+wire load_sign = !funct3[2] & (mem_byteacc ? load_byte[7] : load_halfword[15]);
+wire [`BUS] mem_load = mem_byteacc ? {{24{load_sign}}, load_byte} :
+                       mem_halfacc ? {{16{load_sign}}, load_halfword} :
+                       mem_rdata;
+
+assign mem_rstrb = (state == INSTR_FETCH)
+                   || (state == MEM_ACCESS && isLoad);
+assign mem_wstrb = (state == MEM_ACCESS && isStore);
 
 /*
     FSM
@@ -147,13 +169,10 @@ localparam WAIT_INSTR = 1;
 localparam WAIT_REG = 2;
 localparam EXECUTE = 3;
 localparam MEM_ACCESS = 4;
-localparam WRITE_BACK = 5;
-
-reg [2:0] state;
+localparam WAIT_DATA = 5;
+localparam WRITE_BACK = 6;
+reg [3:0] state;
 initial state = INSTR_FETCH;
-
-assign mem_addr = pc;
-assign mem_rstrb = (state == INSTR_FETCH);
 
 // TODO: (* parallel_case *) can be used to create pipelined FSM
 // TODO: But now, we use a multi cycle CPU
@@ -178,10 +197,20 @@ always @(posedge clk or negedge rstn) begin
                 state <= EXECUTE;
             end
             EXECUTE: begin
-                pc <= nextpc;
+                if (!isSYSTEM) begin
+                    pc <= nextpc;
+                end
+                state <= isLoad ? MEM_ACCESS : WRITE_BACK;
+            end
+            MEM_ACCESS: begin
+                state <= WAIT_DATA;
+            end
+            WAIT_DATA: begin
                 state <= WRITE_BACK;
             end
-            default: state <= INSTR_FETCH;  // because we use assign for hard-coded mem now
+            WRITE_BACK: begin
+                state <= INSTR_FETCH;
+            end
         endcase
     end
 end
