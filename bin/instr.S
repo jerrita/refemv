@@ -1,10 +1,11 @@
   .org 0x0
   .global __start
 __start:
-  li a0, 30
-  li a1, 60
+  xor a0, a0, a0
+  li a1, 30
+  li a2, 120
+cmp:
   add a0, a0, a1
-
+  blt a0, a2, cmp
 loop:
-  add  a0, a0, a0
-  j __start
+  j loop

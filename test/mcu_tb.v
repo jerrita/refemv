@@ -14,14 +14,14 @@ end
 
 initial begin
     clk = 1'b0;
-    forever #10 clk = ~clk;
+    forever #2 clk = ~clk;
 end
 
 initial begin
     RST_N = 1'b0;
     #10 RST_N = 1'b1;
-    #500 RST_N = 1'b0;
-    #503 RST_N = 1'b1;
+    // #500 RST_N = 1'b0;
+    // #503 RST_N = 1'b1;
     #1000 $finish;
 end
 

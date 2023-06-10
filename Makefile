@@ -13,6 +13,7 @@ data: bin/instr.S
 	clang -target riscv32 -march=rv32i -c bin/instr.S -o build/prog.o
 	ld.lld -Tbin/ram.ld build/prog.o -o build/prog.elf
 	llvm-readobj -a build/prog.elf > build/prog.header
+	llvm-objdump -d build/prog.elf > build/prog.asm
 	llvm-objcopy -O binary build/prog.elf build/prog.bin
 	xxd -p -c 1 build/prog.bin > build/prog.hex
 

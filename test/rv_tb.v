@@ -19,8 +19,8 @@ end
 initial begin
     RST_N = 1'b0;
     #10 RST_N = 1'b1;
-    #500 RST_N = 1'b0;
-    #503 RST_N = 1'b1;
+    // #500 RST_N = 1'b0;
+    // #503 RST_N = 1'b1;
     #1000 $finish;
 end
 

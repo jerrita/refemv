@@ -9,8 +9,8 @@ module mcu(
     // input [`BUS] mem_rdata,
     // input mem_rbusy, mem_wbusy,
     // output [`BUS] mem_addr, mem_wdata,
-    // output [3:0] mem_wmask, mem_rmask
-    output reg [`BUS] a0  // for debug
+    // output [3:0] mem_wmask, mem_rmask,
+    output [`BUS] a0  // for debug
 );
 
 integer i;
@@ -24,7 +24,8 @@ wire we_reg;
 
 /*
     Decoder
-    real time
+    *real time*
+    because of the elegance in the riscv design.
 */
 wire isALUreg  =  (instr[6:0] == 7'b0110011); // rd <- rs1 OP rs2   
 wire isALUimm  =  (instr[6:0] == 7'b0010011); // rd <- rs1 OP Iimm
@@ -73,35 +74,32 @@ end
     write: 1 clk
 */
 reg [`BUS] regfile [0:31];
-reg [`BUS] rs1d, rs2d;
+reg [`BUS] rs1d, rs2d, a0r;
 initial for (i = 0; i < 32; i = i + 1) begin
     regfile[i] = 0;
 end
 
-always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-        for (i = 0; i < 32; i = i + 1) begin
-            regfile[i] <= 0;
-        end
-    end else begin
-        rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
-        rs2d <= (rs2 == 5'b0) ? 0 : regfile[rs2];
-        a0 <= regfile[10];
-        if (we_reg) begin
-            regfile[wd] <= wdata;
-        end
+// We must read on clk, so it can be synthesized to bram
+always @(posedge clk) begin
+    rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
+    rs2d <= (rs2 == 5'b0) ? 0 : regfile[rs2];
+    a0r <= regfile[5'd10];
+    if (we_reg) begin
+        regfile[wd] <= wdata;
     end
 end
 
-
+assign a0 = a0r;
 
 /*
     ALU
 */
 assign aluain = rs1d;
-assign alubin = isALUreg ? rs2d : immI;
+assign alubin = (isALUreg || isBranch) ? rs2d : immI;
 reg [`BUS] aluout;
+reg needBranch;
 
+// for result
 always @(*) begin
     case (funct3)
         3'b000: aluout = funct7[5] ? (aluain - alubin) : (aluain + alubin);
@@ -115,26 +113,46 @@ always @(*) begin
     endcase
 end
 
-assign wdata = (isJAL || isJALR) ? (pc + 4) : aluout;
-assign we_reg = (state == WRITE_BACK) && (isALUreg || isALUimm || isJAL || isJALR);
+// for branch
+always @(*) begin
+    case (funct3)
+        3'b000: needBranch = aluain == alubin;
+        3'b001: needBranch = aluain != alubin;
+        3'b100: needBranch = $signed(aluain) < $signed(alubin);
+        3'b101: needBranch = $signed(aluain) >= $signed(alubin);
+        3'b110: needBranch = aluain < alubin;
+        3'b111: needBranch = aluain >= alubin;
+        default: needBranch = 1'b0;
+    endcase
+end
+
+assign wdata = (isJAL || isJALR) ? (pc + 4) :
+               isLUI             ? immU :
+               isAUIPC           ? (pc + immU) :
+               aluout;
+assign we_reg = (state == WRITE_BACK) && 
+    (isALUreg || isALUimm || isJAL || isJALR || isLUI || isAUIPC);
 
 /*
     FSM
 */
 localparam INSTR_FETCH = 0;
-localparam EXECUTE = 1;
-localparam MEM_ACCESS = 2;
-localparam WRITE_BACK = 3;
+localparam WAIT_REG = 1;
+localparam EXECUTE = 2;
+localparam MEM_ACCESS = 3;
+localparam WRITE_BACK = 4;
 
-reg [1:0] state;
+reg [2:0] state;
 initial state = INSTR_FETCH;
 
 // TODO: (* parallel_case *) can be used to create pipelined FSM
 // TODO: But now, we use a multi cycle CPU
 //* Sequential FSM
-wire [`BUS] nextpc = isJAL   ? (pc + immJ) :
-                     isJALR  ? (rs1d + immI) :
+wire [`BUS] nextpc = (isBranch && needBranch) ? (pc + immB) :
+                     isJAL                    ? (pc + immJ) :
+                     isJALR                   ? (rs1d + immI) :
                      (pc + 4);
+
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         state <= INSTR_FETCH;
@@ -142,11 +160,14 @@ always @(posedge clk or negedge rstn) begin
         case (state)
             INSTR_FETCH: begin
                 instr <= {instr_rom[pc+3], instr_rom[pc+2], instr_rom[pc+1], instr_rom[pc]};
+                state <= WAIT_REG;
+            end
+            WAIT_REG: begin
                 state <= EXECUTE;
             end
             EXECUTE: begin
                 pc <= nextpc;
-                state <= INSTR_FETCH;
+                state <= WRITE_BACK;
             end
             default: state <= INSTR_FETCH;  // because we use assign for hard-coded mem now
         endcase
