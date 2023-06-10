@@ -5,6 +5,7 @@ module soc(
 
 wire [31:0] a0;
 wire [31:0] mem_rdata, mem_wdata, addr, rdata;
+wire [3:0] wmask;
 wire rstrb;
 assign LED = a0[7:0];
 
@@ -13,12 +14,13 @@ mcu mcu_inst(
     .rstn(rstn),
     .a0(a0),
     .mem_rdata(mem_rdata),
-    .mem_wdata(wdata),
+    .mem_wdata(mem_wdata),
     .mem_addr(addr),
-    .mem_rstrb(rstrb)
+    .mem_rstrb(rstrb),
+    .mem_wmask(wmask)
 );
 
-endian_converter32 endian_converter32_inst(
+endian_converter32 endian_converter32_inst0(
     .in(rdata),
     .out(mem_rdata)
 );
@@ -28,7 +30,9 @@ mem mem_inst(
     .rstn(rstn),
     .strb(rstrb),
     .addr(addr),
-    .rdata(rdata)
+    .rdata(rdata),
+    .wdata(mem_wdata),
+    .wmask(wmask)
 );
 
 endmodule
