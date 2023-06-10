@@ -155,7 +155,7 @@ end
     Memory
     connect to outside world
 */
-wire [`BUS] mem_addr = (state == MEM_ACCESS) ? rs1d + (isStore ? immS : immI) : pc;
+assign mem_addr = (state == MEM_ACCESS) ? rs1d + (isStore ? immS : immI) : pc;
 wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
 wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
 
@@ -189,7 +189,6 @@ localparam WAIT_REG = 2;
 localparam EXECUTE = 3;
 localparam MEM_ACCESS = 4;
 localparam WAIT_DATA = 5;
-localparam WRITE_BACK = 6;
 reg [3:0] state;
 initial state = INSTR_FETCH;
 
@@ -222,7 +221,7 @@ always @(posedge clk or negedge rstn) begin
                 state <= (isLoad || isStore) ? MEM_ACCESS : INSTR_FETCH;
             end
             MEM_ACCESS: begin
-                #1 state <= WAIT_DATA;
+                #1 state <= isStore ? INSTR_FETCH : WAIT_DATA;
             end
             WAIT_DATA: begin
                 #1 state <= INSTR_FETCH;
@@ -237,7 +236,7 @@ end
 */
 `ifdef BENCH
 always @(posedge clk) begin
-    $display("#%0d", pc);
+    $display("#%0000h  (%000d)", pc, regfile[2]);
     case (1'b1)
         isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
         isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);

@@ -1,19 +1,17 @@
-int add(int a, int b)
+void output(int v)
 {
-    return a + b;
+    // wait sometime
+    for (int j = 0; j < 114514; j++)
+        ;
+    __asm__("mv s7, %0" ::"r"(v));
 }
 
 void start()
 {
-    int a = 0;
-    for (int i = 0; i < 114514; i++) {
-        a = add(a, 1);
-        // move a to s7
-        asm("mv s7, %0" : : "r"(a));
-
-        // wait sometime
-        for (int j = 0; j < 114514; j++);
+    int i = 0;
+    while (1)
+    {
+        output(i);
+        i++;
     }
-
-    for (;;);
 }
