@@ -7,7 +7,7 @@ module mem(
     output reg [`BUS] rdata
 );
 
-reg [`BUS] mem [0:1023];
+reg [`BUS] mem [0:255];
 initial begin
     $readmemh("build/prog.hex", mem);
 end

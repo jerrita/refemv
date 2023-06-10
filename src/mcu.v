@@ -60,6 +60,10 @@ wire [31:0] immJ = {{12{instr[31]}}, instr[19:12],instr[20],instr[30:21],1'b0};
 // PC Module
 reg [`BUS] pc;
 initial pc = 0;
+wire [`BUS] pc4 = pc + 4;
+wire [`BUS] pcimm = pc + (instr[3] ? immJ :
+                          instr[4] ? immU :
+                          immB);
 
 /*
     Register file
@@ -90,17 +94,26 @@ assign a0 = a0r;
 assign aluain = rs1d;
 assign alubin = (isALUreg || isBranch) ? rs2d : immI;
 reg [`BUS] aluout;
+
+wire [32:0] aluMinus = {1'b0, aluain} - {1'b0, alubin};
+wire [31:0] aluPlus = aluain + alubin;
+
 reg needBranch;
+wire EQ   = (aluMinus[31:0] == 0);
+wire LTU  = aluMinus[32];
+wire LT   = (aluain[31] ^ alubin[31]) ? aluain[31] : aluMinus[32];
+
+wire [31:0] shifter = $signed({funct7[5] & aluain[31], aluain}) >>> shamt;
 
 // for result
 always @(*) begin
     case (funct3)
-        3'b000: aluout = funct7[5] ? (aluain - alubin) : (aluain + alubin);
+        3'b000: aluout = funct7[5] ? aluMinus[31:0] : aluPlus;
         3'b001: aluout = aluain << shamt;
-        3'b010: aluout = $signed(aluain) < $signed(alubin);
-        3'b011: aluout = aluain < alubin;
+        3'b010: aluout = {31'b0, LT};
+        3'b011: aluout = {31'b0, LTU};
         3'b100: aluout = aluain ^ alubin;
-        3'b101: aluout = funct7[5] ? ($signed(aluain) >>> shamt) : (aluain >> shamt);
+        3'b101: aluout = shifter;
         3'b110: aluout = aluain | alubin;
         3'b111: aluout = aluain & alubin;
     endcase
@@ -109,19 +122,19 @@ end
 // for branch
 always @(*) begin
     case (funct3)
-        3'b000: needBranch = aluain == alubin;
-        3'b001: needBranch = aluain != alubin;
-        3'b100: needBranch = $signed(aluain) < $signed(alubin);
-        3'b101: needBranch = $signed(aluain) >= $signed(alubin);
-        3'b110: needBranch = aluain < alubin;
-        3'b111: needBranch = aluain >= alubin;
+        3'b000: needBranch = EQ;
+        3'b001: needBranch = ~EQ;
+        3'b100: needBranch = LT;
+        3'b101: needBranch = ~LT;
+        3'b110: needBranch = LTU;
+        3'b111: needBranch = ~LTU;
         default: needBranch = 1'b0;
     endcase
 end
 
-assign wdata = (isJAL || isJALR) ? (pc + 4) :
+assign wdata = (isJAL || isJALR) ? pc4 :
                isLUI             ? immU :
-               isAUIPC           ? (pc + immU) :
+               isAUIPC           ? pcimm :
                aluout;
 assign we_reg = (state == WRITE_BACK) && 
     (isALUreg || isALUimm || isJAL || isJALR || isLUI || isAUIPC);
@@ -145,10 +158,9 @@ assign mem_rstrb = (state == INSTR_FETCH);
 // TODO: (* parallel_case *) can be used to create pipelined FSM
 // TODO: But now, we use a multi cycle CPU
 //* Sequential FSM
-wire [`BUS] nextpc = (isBranch && needBranch) ? (pc + immB) :
-                     isJAL                    ? (pc + immJ) :
-                     isJALR                   ? (rs1d + immI) :
-                     (pc + 4);
+wire [`BUS] nextpc = (isBranch && needBranch || isJAL) ? pcimm :
+                     isJALR  ? {aluPlus[31:1], 1'b0} :
+                     pc4;
 
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
