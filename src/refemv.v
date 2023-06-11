@@ -155,7 +155,7 @@ end
     Memory
     connect to outside world
 */
-assign mem_addr = (state == MEM_ACCESS) ? rs1d + (isStore ? immS : immI) : pc;
+assign mem_addr = (state == MEM_ACCESS || state == WAIT_DATA) ? rs1d + (isStore ? immS : immI) : pc;
 wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
 wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
 

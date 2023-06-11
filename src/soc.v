@@ -3,6 +3,8 @@ module soc(
     output reg [7:0] LED
 );
 
+initial LED = 0;
+
 wire [31:0] dbg;
 wire [31:0] mem_rdata, mem_wdata, addr, rdata;
 wire [29:0] mem_wordaddr = addr[31:2];
