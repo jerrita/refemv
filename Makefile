@@ -44,7 +44,7 @@ debug: build/bench.vvp
 
 build:
 	@mkdir -p build
-	yosys -p "hierarchy -top soc; synth_ice40 -json build/sys.json" src/*.v comp/*.v
+	yosys -p "hierarchy -top soc; synth_ice40 -json build/sys.json" src/*.v
 	nextpnr-ice40 \
 		--up5k \
 		--package sg48 \
