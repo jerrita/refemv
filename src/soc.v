@@ -21,7 +21,7 @@ always @(posedge clk) begin
     end
 end
 
-mcu mcu_inst(
+refemv refemv_inst(
     .clk(clk),
     .rstn(rstn),
     // .s7(dbg),
@@ -37,6 +37,7 @@ endian_converter32 endian_converter32_inst0(
     .out(mem_rdata)
 );
 
+//* Notice: input mem_wdata and mem_mask should be big-endian!
 mem mem_inst(
     .clk(clk),
     .rstn(rstn),

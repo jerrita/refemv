@@ -1,5 +1,5 @@
 pcf_file = res/io.pcf
-ICELINK_DIR = /Volumes/iCELink
+ICELINK_DIR = E:\
 # ICELINK_DIR=$(shell df | grep iCELink | awk '{print $$6}')
 ${warning iCELink path: $(ICELINK_DIR)}
 
@@ -50,8 +50,8 @@ build:
 		--package sg48 \
 		--json build/sys.json \
 		--pcf $(pcf_file) \
-		--asc build/pnr.asc \
-		--force
+		--asc build/pnr.asc
+		# --force
 	icepack build/pnr.asc build/prog.bin
 
 flash:
