@@ -10,9 +10,8 @@ module mcu(
     // input mem_rbusy, mem_wbusy,
     output [`BUS] mem_addr, mem_wdata,
     output mem_rstrb,
-    output [3:0] mem_wmask,
-    // output [3:0] mem_wmask, mem_rmask,
-    output [`BUS] s7  // for debug
+    output [3:0] mem_wmask
+    // output [`BUS] s7  // for debug
 );
 
 integer i;
@@ -74,7 +73,8 @@ wire [`BUS] pcimm = pc + (instr[3] ? immJ :
     write: 1 clk
 */
 reg [`BUS] regfile [0:31];
-reg [`BUS] rs1d, rs2d, s7r;
+reg [`BUS] rs1d, rs2d;
+// reg [`BUS] s7r;
 initial for (i = 0; i < 32; i = i + 1) begin
     regfile[i] = 0;
 end
@@ -96,7 +96,7 @@ assign we_reg = (state == EXECUTE && !isBranch && !isStore)
 always @(posedge clk) begin
     rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
     rs2d <= (rs2 == 5'b0) ? 0 : regfile[rs2];
-    s7r <= regfile[5'd23];
+    // s7r <= regfile[5'd23];
 end
 
 always @(posedge clk) begin
@@ -105,7 +105,7 @@ always @(posedge clk) begin
     end
 end
 
-assign s7 = s7r;
+// assign s7 = s7r;
 
 /*
     ALU
