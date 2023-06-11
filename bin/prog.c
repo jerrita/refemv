@@ -1,17 +1,17 @@
-void output(int v)
-{
-    // wait sometime
-    for (int j = 0; j < 114514; j++)
-        ;
-    __asm__("mv s7, %0" ::"r"(v));
+#define LED_ADDR 0x400004
+
+void out_led(short v) {
+    *(unsigned int *)LED_ADDR = v;
+}
+
+int add(int a, int b) {
+    return a + b;
 }
 
 void start()
 {
-    int i = 0;
-    while (1)
-    {
-        output(i);
-        i++;
-    }
+    for (int i = 0; i < 114514; i++)
+        out_led(i);
+
+    for (;;);
 }
