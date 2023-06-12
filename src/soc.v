@@ -3,6 +3,15 @@ module soc(
     output reg [7:0] LED
 );
 
+// set_io LED[0] 12
+// set_io LED[1] 11
+// set_io LED[2] 10
+// set_io LED[3] 9
+// set_io LED[4] 1
+// set_io LED[5] 2
+// set_io LED[6] 3
+// set_io LED[7] 4
+
 initial LED = 0;
 
 wire [31:0] dbg;

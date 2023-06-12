@@ -31,22 +31,14 @@ set_io P1_12    9
 set_io rstn        6
 
 # PMOD 2
-# set_io P2_1     46
-# set_io P2_2     44
-# set_io P2_3     42
-# set_io P2_4     37
-# set_io P2_9     36 
-# set_io P2_10    38
-# set_io P2_11    43
-# set_io P2_12    45
-set_io LED[0] 45
-set_io LED[1] 43
-set_io LED[2] 38
-set_io LED[3] 36
-set_io LED[4] 46
-set_io LED[5] 44
-set_io LED[6] 42
-set_io LED[7] 37
+set_io P2_1     46
+set_io P2_2     44
+set_io P2_3     42
+set_io P2_4     37
+set_io P2_9     36 
+set_io P2_10    38
+set_io P2_11    43
+set_io P2_12    45
 
 # PMOD 3
 set_io P3_1     34 
