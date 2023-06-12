@@ -26,11 +26,10 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    // input is big-endian. but we need store with little endian.
-    if (wmask[0]) mem[word_addr][31:24] <= wdata[7:0];
-    if (wmask[1]) mem[word_addr][23:16] <= wdata[15:8];
-    if (wmask[2]) mem[word_addr][15:8] <= wdata[23:16];
-    if (wmask[3]) mem[word_addr][7:0] <= wdata[31:24];
+    if (wmask[0]) mem[word_addr][7:0] <= wdata[7:0];
+    if (wmask[1]) mem[word_addr][15:8] <= wdata[15:8];
+    if (wmask[2]) mem[word_addr][23:16] <= wdata[23:16];
+    if (wmask[3]) mem[word_addr][31:24] <= wdata[31:24];
 end
 
 endmodule

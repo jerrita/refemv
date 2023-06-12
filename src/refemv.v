@@ -85,12 +85,10 @@ assign wdata = (isJAL || isJALR) ? pc4 :
                isAUIPC           ? pcimm :
                isLoad            ? mem_load :
                aluout;
-//* The !isLoad term that prevents writing rd during EXECUTE can be removed 
-//* from the condition, since rd will be overwritten 
-//* right after during the WAIT_DATA. It is there to have something easier to understand with simulations.
-// before: 1148, after: 1115
-assign we_reg = (state == EXECUTE && !isBranch && !isStore)
-                || (state == WAIT_DATA);
+//* we must add !isLoad even if it will be rewrite on WRITE_BACK
+//* because we use an assign for mem_addr,which will affect the result of mem_load
+assign we_reg = (state == EXECUTE && !isBranch && !isStore && !isLoad) ||
+                (state == WRITE_BACK && isLoad);
 
 // We must read on clk, so it can be synthesized to bram
 always @(posedge clk) begin
@@ -152,7 +150,7 @@ end
     Memory
     connect to outside world
 */
-assign mem_addr = (state == MEM_ACCESS || state == WAIT_DATA) ? rs1d + (isStore ? immS : immI) : pc;
+assign #1 mem_addr = (state == MEM_ACCESS || state == WAIT_MEM || state == WRITE_BACK) ? rs1d + (isStore ? immS : immI) : pc;
 wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
 wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
 
@@ -185,7 +183,8 @@ localparam WAIT_INSTR = 1;
 localparam WAIT_REG = 2;
 localparam EXECUTE = 3;
 localparam MEM_ACCESS = 4;
-localparam WAIT_DATA = 5;
+localparam WAIT_MEM = 5;
+localparam WRITE_BACK = 6;
 reg [3:0] state;
 initial state = INSTR_FETCH;
 
@@ -206,7 +205,8 @@ always @(posedge clk or negedge rstn) begin
                 #1 state <= WAIT_INSTR;
             end
             WAIT_INSTR: begin
-                #1 instr <= mem_rdata;
+                // Convert little endian to big
+                #1 instr <= {mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24]};
                 state <= WAIT_REG;
             end
             WAIT_REG: begin
@@ -216,13 +216,16 @@ always @(posedge clk or negedge rstn) begin
                 if (!isSYSTEM) begin
                     #1 pc <= nextpc;
                 end
-                state <= (isLoad || isStore) ? MEM_ACCESS : INSTR_FETCH;
+                state <= (isLoad || isStore) ? MEM_ACCESS : WRITE_BACK;
             end
             MEM_ACCESS: begin
-                #1 state <= isStore ? INSTR_FETCH : WAIT_DATA;
+                #1 state <= (isLoad || isStore) ? WAIT_MEM : WRITE_BACK;
             end
-            WAIT_DATA: begin
-                #1 state <= INSTR_FETCH;
+            WAIT_MEM: begin
+                #1 state <= isLoad ? WRITE_BACK : INSTR_FETCH;
+            end
+            WRITE_BACK: begin
+                state <= INSTR_FETCH;
             end
         endcase
     end

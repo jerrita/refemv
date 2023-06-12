@@ -19,12 +19,12 @@ wire rstn = SW3[8];
 // set_io LED[6] 3
 // set_io LED[7] 4
 
-wire [31:0] mem_rdata, mem_wdata, addr, rdata;
-wire [29:0] mem_wordaddr = addr[31:2];
+wire [31:0] mem_rdata, mem_wdata, mem_addr; // , rdata;
+wire [29:0] mem_wordaddr = mem_addr[31:2];
 wire [3:0] wmask;
 wire rstrb;
 
-wire isIO = addr[22];
+wire isIO = mem_addr[22];
 wire isMem = ~isIO;
 wire mem_wstrb = |wmask;
 
@@ -32,10 +32,13 @@ wire mem_wstrb = |wmask;
 localparam IO_LED_bit = 0;
 localparam IO_UartDat_bit = 1;
 localparam IO_UartCntl_bit = 2;
+localparam IO_Switch_bit = 3;
 
 wire uart_valid = isIO && mem_wstrb && mem_wordaddr[IO_UartDat_bit];
 wire uart_ready;
-wire [31:0] io_rdata = mem_wordaddr[IO_UartCntl_bit] ? { 22'b0, ~uart_ready, 9'b0} : 32'b0;
+wire [31:0] io_rdata = mem_wordaddr[IO_UartCntl_bit] ? { 22'b0, !uart_ready, 9'b0} :
+                       mem_wordaddr[IO_Switch_bit] ? { 24'b0, SW3[1:8] } :
+                       32'b0;
 
 emitter_uart #(
     .clk_freq_hz(12 * 1000000),
@@ -61,15 +64,15 @@ end
 `ifdef BENCH
 always @(posedge clk) begin
     if (rstrb) begin
-        #1 $display("%h <= mem[%h]", isMem ? mem_rdata : io_rdata, addr);
+        #1 $display("[%6d] %h <= mem[%h]", $time, isMem ? mem_rdata : io_rdata, mem_addr);
     end
 
     if (mem_wstrb) begin
-        #1 $display("mem[%h] <= %h", addr, mem_wdata);
+        $display("mem[%h] <= %h", mem_addr, mem_wdata);
     end
 
     case (1'b1)
-        isIO: #1 $display("IO (#%h): %h <= %h(w: %h, uart: %h)", addr, io_rdata, mem_wdata, mem_wstrb, uart_valid);
+        isIO: $display("IO (#%h): %h <= %h(w: %h, uart: %h)", mem_addr, io_rdata, mem_wdata, mem_wstrb, uart_valid);
     endcase
 end
 `endif
@@ -84,23 +87,17 @@ refemv refemv_inst(
     // .s7(dbg),
     .mem_rdata(isMem ? mem_rdata : io_rdata),
     .mem_wdata(mem_wdata),
-    .mem_addr(addr),
+    .mem_addr(mem_addr),
     .mem_rstrb(rstrb),
     .mem_wmask(wmask)
 );
 
-endian_converter32 endian_converter32_inst0(
-    .in(rdata),
-    .out(mem_rdata)
-);
-
-//* Notice: input mem_wdata and mem_mask should be big-endian!
 mem mem_inst(
     .clk(clk),
     .rstn(rstn),
     .strb(isMem && rstrb),
-    .addr(addr),
-    .rdata(rdata),
+    .addr(mem_addr),
+    .rdata(mem_rdata),
     .wdata(mem_wdata),
     .wmask({4{isMem}} & wmask)
 );

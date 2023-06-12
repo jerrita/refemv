@@ -1,7 +1,7 @@
 pcf_file = res/io.pcf
-ICELINK_DIR = E:\
+# ICELINK_DIR = E:\
 # ICELINK_DIR=$(shell df | grep iCELink | awk '{print $$6}')
-# ICELINK_DIR = /Volumes/iCELink
+ICELINK_DIR = /Volumes/iCELink
 ${warning iCELink path: $(ICELINK_DIR)}
 
 filename = ./src/datapath.v

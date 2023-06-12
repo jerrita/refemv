@@ -17,7 +17,7 @@ end
 
 initial begin
     clk = 1'b0;
-    forever #2 clk = ~clk;
+    forever #5 clk = ~clk;
 end
 
 initial begin
