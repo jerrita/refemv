@@ -1,12 +1,15 @@
 // clk is 12MHz in icesugar
 
 module soc(
-    input clk, rstn,
+    input clk,
     input RX,
+    input [1:8] SW3,
     output reg [7:0] LED,
     output TX
 );
 
+wire rstn = SW3[8];
+// assign LED = SW3[1:8];
 // set_io LED[0] 12
 // set_io LED[1] 11
 // set_io LED[2] 10
@@ -15,8 +18,6 @@ module soc(
 // set_io LED[5] 2
 // set_io LED[6] 3
 // set_io LED[7] 4
-
-initial LED = 0;
 
 wire [31:0] mem_rdata, mem_wdata, addr, rdata;
 wire [29:0] mem_wordaddr = addr[31:2];
@@ -59,12 +60,19 @@ end
 */
 `ifdef BENCH
 always @(posedge clk) begin
+    if (rstrb) begin
+        #1 $display("%h <= mem[%h]", isMem ? mem_rdata : io_rdata, addr);
+    end
+
+    if (mem_wstrb) begin
+        #1 $display("mem[%h] <= %h", addr, mem_wdata);
+    end
+
     case (1'b1)
-        isIO: $display("IO (#%h): %h <= %h(%h)", addr, io_rdata, mem_wdata, uart_valid);
+        isIO: #1 $display("IO (#%h): %h <= %h(w: %h, uart: %h)", addr, io_rdata, mem_wdata, mem_wstrb, uart_valid);
     endcase
 end
 `endif
-
 
 /*
     CPU and memory

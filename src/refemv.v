@@ -96,13 +96,10 @@ assign we_reg = (state == EXECUTE && !isBranch && !isStore)
 always @(posedge clk) begin
     rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
     rs2d <= (rs2 == 5'b0) ? 0 : regfile[rs2];
-    // s7r <= regfile[5'd23];
-end
-
-always @(posedge clk) begin
     if (we_reg) begin
         regfile[wd] <= wdata;
     end
+    // s7r <= regfile[5'd23];
 end
 
 // assign s7 = s7r;
@@ -201,6 +198,7 @@ wire [`BUS] nextpc = (isBranch && needBranch || isJAL) ? pcimm :
 
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
+        pc <= 32'h0;
         state <= INSTR_FETCH;
     end else begin
         case (state)
@@ -237,6 +235,10 @@ end
 `ifdef BENCH
 always @(posedge clk) begin
     $display("#%0000h  (%000d)", pc, regfile[2]);
+
+    if (pc == 32'h5c) begin
+        $display("[5c] a0 = %0h", regfile[10]);
+    end
     // case (1'b1)
     //     isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
     //     isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);

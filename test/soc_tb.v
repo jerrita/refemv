@@ -6,6 +6,9 @@ module soc_tb ();
 reg clk;
 reg RST_N;
 wire [7:0] LED;
+wire [1:8] SW3;
+
+assign SW3[8] = RST_N;
 
 initial begin
     $dumpfile("build/bench.vcd");
@@ -27,7 +30,8 @@ end
 
 soc soc_inst(
     .clk(clk),
-    .rstn(RST_N),
+    // .rstn(RST_N),
+    .SW3(SW3),
     .LED(LED)
 );
 
