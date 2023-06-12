@@ -20,15 +20,14 @@ set_io USB_PULLUP   11
 
 # PMOD 1
 set_io P1_1     10
-# set_io P1_2     6
+set_io P1_2     6
 set_io P1_3     3
 set_io P1_4     48
 set_io P1_9     47
 set_io P1_10    2
 set_io P1_11    4
 set_io P1_12    9
-
-set_io rstn        6
+set_io rstn 47
 
 # PMOD 2
 # set_io P2_1     46
