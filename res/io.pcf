@@ -36,8 +36,6 @@ set_io P1[10]   2
 set_io P1[11]   4
 set_io P1[12]   9
 
-# set_io rstn 47
-
 # PMOD 2
 # set_io P2_1     46
 # set_io P2_2     44

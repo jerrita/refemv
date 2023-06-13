@@ -74,9 +74,14 @@ wire [`BUS] pcimm = pc + (instr[3] ? immJ :
 */
 reg [`BUS] regfile [0:31];
 reg [`BUS] rs1d, rs2d;
-// reg [`BUS] s7r;
 initial for (i = 0; i < 32; i = i + 1) begin
     regfile[i] = 0;
+end
+
+always @(posedge clk) begin
+    if (we_reg & |wd) begin
+        regfile[wd] <= wdata;
+    end
 end
 
 
@@ -90,17 +95,6 @@ assign wdata = (isJAL || isJALR) ? pc4 :
 assign we_reg = (state == EXECUTE && !isBranch && !isStore && !isLoad) ||
                 (state == WRITE_BACK && isLoad);
 
-// We must read on clk, so it can be synthesized to bram
-always @(posedge clk) begin
-    rs1d <= (rs1 == 5'b0) ? 0 : regfile[rs1];
-    rs2d <= (rs2 == 5'b0) ? 0 : regfile[rs2];
-    if (we_reg) begin
-        regfile[wd] <= wdata;
-    end
-    // s7r <= regfile[5'd23];
-end
-
-// assign s7 = s7r;
 
 /*
     ALU
@@ -150,7 +144,7 @@ end
     Memory
     connect to outside world
 */
-assign #1 mem_addr = (state == MEM_ACCESS || state == WAIT_MEM || state == WRITE_BACK) ? rs1d + (isStore ? immS : immI) : pc;
+assign #1 mem_addr = (state == EXECUTE || state == WAIT_MEM || state == WRITE_BACK) ? rs1d + (isStore ? immS : immI) : pc;
 wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
 wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
 
@@ -161,30 +155,28 @@ wire [`BUS] mem_load = mem_byteacc ? {{24{load_sign}}, load_byte} :
                        mem_halfacc ? {{16{load_sign}}, load_halfword} :
                        mem_rdata;
 
-assign mem_rstrb = (state == INSTR_FETCH) || (state == MEM_ACCESS && isLoad);
+assign mem_rstrb = (state == INSTR_FETCH) || (state == EXECUTE && isLoad);
 assign mem_wdata[7:0] = rs2d[7:0];
 assign mem_wdata[15:8] = mem_addr[0] ? rs2d[7:0] : rs2d[15:8];
 assign mem_wdata[23:16] = mem_addr[1] ? rs2d[7:0] : rs2d[23:16];
 assign mem_wdata[31:24] = mem_addr[0] ? rs2d[7:0] :
                           mem_addr[1] ? rs2d[15:8] :
                           rs2d[31:24];
-assign mem_wmask = (state == MEM_ACCESS && isStore) ? (mem_byteacc ? (
-    mem_addr[1] ? (mem_addr[0] ? 4'b1000 : 4'b0100) :
-                (mem_addr[0] ? 4'b0010 : 4'b0001)
-) : mem_halfacc ? (
-    mem_addr[1] ? 4'b1100 : 4'b0011
-) : 4'b1111) : 4'b0000;
+assign mem_wmask = {4{(state == EXECUTE) & isStore}} & (mem_byteacc ? (
+                        mem_addr[1] ? (mem_addr[0] ? 4'b1000 : 4'b0100) :
+                                    (mem_addr[0] ? 4'b0010 : 4'b0001)
+                    ) : mem_halfacc ? (
+                        mem_addr[1] ? 4'b1100 : 4'b0011
+                    ) : 4'b1111);
 
 /*
     FSM
 */
 localparam INSTR_FETCH = 0;
-localparam WAIT_INSTR = 1;
-localparam WAIT_REG = 2;
-localparam EXECUTE = 3;
-localparam MEM_ACCESS = 4;
-localparam WAIT_MEM = 5;
-localparam WRITE_BACK = 6;
+localparam INSTR_DEC = 1;
+localparam EXECUTE = 2;   // We pre-access memory in this stage
+localparam WAIT_MEM = 3;
+localparam WRITE_BACK = 4;
 reg [3:0] state;
 initial state = INSTR_FETCH;
 
@@ -198,34 +190,33 @@ wire [`BUS] nextpc = (isBranch && needBranch || isJAL) ? pcimm :
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         pc <= 32'h0;
+        instr <= 32'h13;
+        rs1d <= 32'h0;
+        rs2d <= 32'h0;
         state <= INSTR_FETCH;
     end else begin
         case (state)
             INSTR_FETCH: begin
-                #1 state <= WAIT_INSTR;
+                #1 state <= INSTR_DEC;
             end
-            WAIT_INSTR: begin
+            INSTR_DEC: begin
                 // Convert little endian to big
                 #1 instr <= {mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24]};
-                state <= WAIT_REG;
-            end
-            WAIT_REG: begin
-                #1 state <= EXECUTE;
+                rs1d <= regfile[{mem_rdata[11:8], mem_rdata[23]}];
+                rs2d <= regfile[{mem_rdata[0], mem_rdata[15:12]}];
+                state <= EXECUTE;
             end
             EXECUTE: begin
                 if (!isSYSTEM) begin
                     #1 pc <= nextpc;
                 end
-                state <= (isLoad || isStore) ? MEM_ACCESS : WRITE_BACK;
-            end
-            MEM_ACCESS: begin
-                #1 state <= (isLoad || isStore) ? WAIT_MEM : WRITE_BACK;
+                state <= (isLoad || isStore) ? WAIT_MEM : WRITE_BACK;
             end
             WAIT_MEM: begin
                 #1 state <= isLoad ? WRITE_BACK : INSTR_FETCH;
             end
             WRITE_BACK: begin
-                state <= INSTR_FETCH;
+                #1 state <= INSTR_FETCH;
             end
         endcase
     end
@@ -239,9 +230,6 @@ end
 always @(posedge clk) begin
     $display("#%0000h  (%000d)", pc, regfile[2]);
 
-    if (pc == 32'h5c) begin
-        $display("[5c] a0 = %0h", regfile[10]);
-    end
     // case (1'b1)
     //     isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
     //     isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);

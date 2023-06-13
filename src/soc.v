@@ -72,7 +72,7 @@ always @(posedge clk) begin
     end
 
     case (1'b1)
-        isIO: $display("IO (#%h): %h <= %h(w: %h, uart: %h)", mem_addr, io_rdata, mem_wdata, mem_wstrb, uart_valid);
+        isIO & mem_wstrb: $display("IO (#%h): %h <= %h(uart: %h)", mem_addr, io_rdata, mem_wdata, uart_valid);
     endcase
 end
 `endif

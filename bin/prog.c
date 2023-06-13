@@ -11,7 +11,7 @@ void wait()
 
 void out_led(char v)
 {
-    wait();
+    // wait();
     *(char *)LED_ADDR = v;
 }
 
@@ -33,14 +33,14 @@ int get_cntl()
 
 void outc(char c)
 {
-    while (get_cntl() & (1 << 9));
+    // while (get_cntl() & (1 << 9));
     *(char *)UART_ADDR = c;
 }
 
 void start()
 {
     char s[] = "Hello, world!";
-    int times = 200;
+    int times = 20;
     while (times--)
     {
         for (int i = 0; i < 15; i++)
@@ -48,6 +48,9 @@ void start()
             outc(s[i]);
         }
     }
+
+    for (int i = 0; i < 100; i++)
+        out_led(i);
 
     for (;;)
         ;
