@@ -1,8 +1,8 @@
 #include "../inc/refem.h"
 
 void prog() {
-  char *s = "Hello, world!\n";
-  while (*s) {
+  char *s = "Hello, world!\r\n";
+  while (*s != '\0') {
     while (UartBusy())
       ;
     UartSend(*s++);

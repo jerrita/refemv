@@ -10,17 +10,9 @@ module soc(
 );
 
 wire rstn = SW3[8];
-// assign LED = SW3[1:8];
-// set_io LED[0] 12
-// set_io LED[1] 11
-// set_io LED[2] 10
-// set_io LED[3] 9
-// set_io LED[4] 1
-// set_io LED[5] 2
-// set_io LED[6] 3
-// set_io LED[7] 4
 
-wire [`BUS] mem_rdata, mem_wdata;
+//! mem_rdata and mem_wdata are all little-endian
+wire [`BUS] mem_rdata, mem_rdata_be, mem_wdata;
 wire [`BUS_ADDR] mem_addr;
 wire [`BUS_ADDRWT-2:0] mem_wordaddr = mem_addr[`BUS_ADDRWT:2];
 wire [3:0] wmask;
@@ -54,7 +46,7 @@ emitter_uart #(
 ) emitter_uart_inst(
     .i_clk(clk),
     .i_rst(~rstn),
-    .i_data(mem_wdata[7:0]),
+    .i_data(mem_wdata[31:24]),
     .i_valid(uart_valid),
     .o_ready(uart_ready),
     .o_uart_tx(TX)
@@ -64,7 +56,7 @@ always @(posedge clk) begin
     timer <= timer + 1;
 
     if (isIO && mem_wstrb && mem_wordaddr[IO_LED_bit]) begin
-        LED <= ~(mem_wdata[7:0]);
+        LED <= ~(mem_wdata[31:24]);
     end
 end
 
@@ -91,15 +83,21 @@ end
     CPU and memory
 */
 
+//! output mem is little-endian, but input mem needs to be big-endian
 refemv refemv_inst(
     .clk(clk),
     .rstn(rstn),
     // .s7(dbg),
-    .mem_rdata(isMem ? mem_rdata : io_rdata),
+    .mem_rdata(isMem ? mem_rdata_be : io_rdata),
     .mem_wdata(mem_wdata),
     .mem_addr(mem_addr),
     .mem_rstrb(rstrb),
     .mem_wmask(wmask)
+);
+
+endian_converter32 ec_inst(
+    .in(mem_rdata),
+    .out(mem_rdata_be)
 );
 
 mem mem_inst(

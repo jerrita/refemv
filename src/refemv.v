@@ -16,10 +16,6 @@ module refemv(
 );
 
 integer i;
-
-// wire [`BUS] mem_wdata, mem_addr, mem_rdata;
-// wire [3:0] mem_wmask, mem_rmask;
-// wire mem_rbusy, mem_wbusy;
 wire [`BUS] wdata;
 wire [`BUS] aluain, alubin;
 wire we_reg;
@@ -56,9 +52,6 @@ wire [31:0] immI = {{21{instr[31]}}, instr[30:20]};
 wire [31:0] immS = {{21{instr[31]}}, instr[30:25],instr[11:7]};
 wire [31:0] immB = {{20{instr[31]}}, instr[7],instr[30:25],instr[11:8],1'b0};
 wire [31:0] immJ = {{12{instr[31]}}, instr[19:12],instr[20],instr[30:21],1'b0};
-
-
-//* Bellow codes should not hold any wire, only assign to reg
 
 // PC Module
 reg [`BUS] pc;
@@ -146,6 +139,7 @@ end
     connect to outside world
 */
 assign #1 mem_addr = (state == EXECUTE || state == WAIT_MEM || state == WRITE_BACK) ? rs1d + (isStore ? immS : immI) : pc;
+
 wire [15:0] load_halfword = mem_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
 wire [7:0] load_byte = mem_addr[0] ? load_halfword[15:8] : load_halfword[7:0];
 
@@ -158,33 +152,34 @@ wire [`BUS] mem_load = mem_byteacc ? {{24{load_sign}}, load_byte} :
 
 assign mem_rstrb = (state == INSTR_FETCH) || (state == EXECUTE && isLoad);
 
+// Little Endian
 // xx00:
-//      byte: 0x000000ff
-//      half: 0x0000ffff
-//      word: 0xffffffff
-// xx01:
-//      byte: 0x0000ff00
-//      half: 0x0000ffff
-//      word: 0xffffffff
-// xx10:
-//      byte: 0x00ff0000
-//      half: 0xffff0000
-//      word: 0xffffffff
-// xx11:
 //      byte: 0xff000000
 //      half: 0xffff0000
 //      word: 0xffffffff
-assign mem_wdata[7:0] = rs2d[7:0];
-assign mem_wdata[15:8] = mem_addr[0] ? rs2d[7:0] : rs2d[15:8];
-assign mem_wdata[23:16] = mem_addr[1] ? rs2d[7:0] : rs2d[23:16];
-assign mem_wdata[31:24] = mem_addr[0] ? rs2d[7:0] :
+// xx01:
+//      byte: 0x00ff0000
+//      half: 0xffff0000
+//      word: 0xffffffff
+// xx10:
+//      byte: 0x0000ff00
+//      half: 0x0000ffff
+//      word: 0xffffffff
+// xx11:
+//      byte: 0x000000ff
+//      half: 0x0000ffff
+//      word: 0xffffffff
+assign mem_wdata[31:24] = rs2d[7:0];
+assign mem_wdata[23:16] = mem_addr[0] ? rs2d[7:0] : rs2d[15:8];
+assign mem_wdata[15:8] = mem_addr[1] ? rs2d[7:0] : rs2d[23:16];
+assign mem_wdata[7:0] = mem_addr[0] ? rs2d[7:0] :
                           mem_addr[1] ? rs2d[15:8] :
                           rs2d[31:24];
 assign mem_wmask = {4{(state == EXECUTE) & isStore}} & (mem_byteacc ? (
-                        mem_addr[1] ? (mem_addr[0] ? 4'b1000 : 4'b0100) :
-                                    (mem_addr[0] ? 4'b0010 : 4'b0001)
+                        mem_addr[1] ? (mem_addr[0] ? 4'b0001 : 4'b0010) :
+                                    (mem_addr[0] ? 4'b0100 : 4'b1000)
                     ) : mem_halfacc ? (
-                        mem_addr[1] ? 4'b1100 : 4'b0011
+                        mem_addr[1] ? 4'b0011 : 4'b1100
                     ) : 4'b1111);
 
 /*
@@ -218,10 +213,9 @@ always @(posedge clk or negedge rstn) begin
                 #1 state <= INSTR_DEC;
             end
             INSTR_DEC: begin
-                // Convert little endian to big
-                #1 instr <= {mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24]} >> 2;
-                rs1d <= regfile[{mem_rdata[11:8], mem_rdata[23]}];
-                rs2d <= regfile[{mem_rdata[0], mem_rdata[15:12]}];
+                #1 instr <= mem_rdata >> 2;
+                rs1d <= regfile[mem_rdata[19:15]];
+                rs2d <= regfile[mem_rdata[24:20]];
                 state <= EXECUTE;
             end
             EXECUTE: begin
@@ -247,19 +241,6 @@ end
 `ifdef BENCH
 always @(posedge clk) begin
     $display("#%0000h  (%000d)", pc, regfile[2]);
-
-    // case (1'b1)
-    //     isALUreg: $display("ALUreg rd = %d rs1 = %d rs2 = %d funct3 = %b", wd, rs1, rs2, funct3);
-    //     isALUimm: $display("ALUimm rd = %d rs1 = %d imm = %0d funct3 = %b", wd, rs1, immI, funct3);
-    //     isBranch: $display("BRANCH");
-    //     isJAL:    $display("JAL");
-    //     isJALR:   $display("JALR");
-    //     isAUIPC:  $display("AUIPC");
-    //     isLUI:    $display("LUI");	
-    //     isLoad:   $display("LOAD");
-    //     isStore:  $display("STORE");
-    //     isSYSTEM: $display("SYSTEM");
-    // endcase
 end
 `endif
 
