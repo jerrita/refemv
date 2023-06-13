@@ -35,7 +35,7 @@ env:
 
 bench: $(bench_target)
 	@mkdir -p build
-	iverilog -DBENCH -y ./src -y ./comp  -o $(bench_out) $(bench_target) 
+	iverilog -DBENCH -y ./src -y ./comp -y /opt/homebrew/share/yosys/ice40 -o $(bench_out) $(bench_target) 
 
 wave: $(bench_out)
 	vvp -n $(bench_out)
