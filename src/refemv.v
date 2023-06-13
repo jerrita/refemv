@@ -29,19 +29,19 @@ wire we_reg;
     *real time*
     because of the elegance in the riscv design.
 */
-reg [`BUS] instr;
+reg [31:2] instr;
 // 1181
-wire [6:0] op = instr[6:0];
-wire isALUreg  =  (op == 7'b0110011); // rd <- rs1 OP rs2   
-wire isALUimm  =  (op == 7'b0010011); // rd <- rs1 OP Iimm
-wire isBranch  =  (op == 7'b1100011); // if(rs1 OP rs2) PC<-PC+Bimm
-wire isJALR    =  (op == 7'b1100111); // rd <- PC+4; PC<-rs1+Iimm
-wire isJAL     =  (op == 7'b1101111); // rd <- PC+4; PC<-PC+Jimm
-wire isAUIPC   =  (op == 7'b0010111); // rd <- PC + Uimm
-wire isLUI     =  (op == 7'b0110111); // rd <- Uimm   
-wire isLoad    =  (op == 7'b0000011); // rd <- mem[rs1+Iimm]
-wire isStore   =  (op == 7'b0100011); // mem[rs1+Simm] <- rs2
-wire isSYSTEM  =  (op == 7'b1110011); // special
+wire [6:2] op = instr[6:2];
+wire isALUreg  =  (op == 5'b01100); // rd <- rs1 OP rs2   
+wire isALUimm  =  (op == 5'b00100); // rd <- rs1 OP Iimm
+wire isBranch  =  (op == 5'b11000); // if(rs1 OP rs2) PC<-PC+Bimm
+wire isJALR    =  (op == 5'b11001); // rd <- PC+4; PC<-rs1+Iimm
+wire isJAL     =  (op == 5'b11011); // rd <- PC+4; PC<-PC+Jimm
+wire isAUIPC   =  (op == 5'b00101); // rd <- PC + Uimm
+wire isLUI     =  (op == 5'b01101); // rd <- Uimm   
+wire isLoad    =  (op == 5'b00000); // rd <- mem[rs1+Iimm]
+wire isStore   =  (op == 5'b01000); // mem[rs1+Simm] <- rs2
+wire isSYSTEM  =  (op == 5'b11100); // special
 
 wire [4:0] rs1    = instr[19:15];
 wire [4:0] rs2    = instr[24:20];
@@ -190,7 +190,7 @@ wire [`BUS] nextpc = (isBranch && needBranch || isJAL) ? pcimm :
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         pc <= 32'h0;
-        instr <= 32'h13;
+        instr <= 30'h13;
         rs1d <= 32'h0;
         rs2d <= 32'h0;
         state <= INSTR_FETCH;
@@ -201,7 +201,7 @@ always @(posedge clk or negedge rstn) begin
             end
             INSTR_DEC: begin
                 // Convert little endian to big
-                #1 instr <= {mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24]};
+                #1 instr <= {mem_rdata[7:0], mem_rdata[15:8], mem_rdata[23:16], mem_rdata[31:24]} >> 2;
                 rs1d <= regfile[{mem_rdata[11:8], mem_rdata[23]}];
                 rs2d <= regfile[{mem_rdata[0], mem_rdata[15:12]}];
                 state <= EXECUTE;
