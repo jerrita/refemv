@@ -8,7 +8,8 @@ module refemv(
     input clk, rstn,
     input [`BUS] mem_rdata,
     // input mem_rbusy, mem_wbusy,
-    output [`BUS] mem_addr, mem_wdata,
+    output [`BUS_ADDR] mem_addr, 
+    output [`BUS] mem_wdata,
     output mem_rstrb,
     output [3:0] mem_wmask
     // output [`BUS] s7  // for debug

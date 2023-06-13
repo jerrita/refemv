@@ -1,4 +1,5 @@
 // clk is 12MHz in icesugar
+`include "inc/define.vh"
 
 module soc(
     input clk,
@@ -19,8 +20,9 @@ wire rstn = SW3[8];
 // set_io LED[6] 3
 // set_io LED[7] 4
 
-wire [31:0] mem_rdata, mem_wdata, mem_addr; // , rdata;
-wire [29:0] mem_wordaddr = mem_addr[31:2];
+wire [`BUS] mem_rdata, mem_wdata;
+wire [`BUS_ADDR] mem_addr;
+wire [`BUS_ADDRWT-2:0] mem_wordaddr = mem_addr[`BUS_ADDRWT:2];
 wire [3:0] wmask;
 wire rstrb;
 

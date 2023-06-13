@@ -3,7 +3,8 @@
 module mem(
     input clk, rstn,
     input strb,
-    input [`BUS] addr, wdata,
+    input [`BUS_ADDR] addr,
+    input [`BUS] wdata,
     input [3:0] wmask,
     output reg [`BUS] rdata
 );
@@ -13,7 +14,7 @@ initial begin
     $readmemh("build/prog.hex", mem);
 end
 
-wire [29:0] word_addr = addr[31:2];
+wire [`BUS_ADDRWT-2:0] word_addr = addr[`BUS_ADDRWT:2];
 
 always @(posedge clk) begin
     if (!rstn) begin
