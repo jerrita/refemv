@@ -13,6 +13,8 @@
 
 #define SetLED(x)      (*(volatile unsigned int *)IO_LED = (x))
 #define GetSW()        (*(volatile unsigned int *)IO_SW)
-#define GetTime()     (*(volatile unsigned int *)IO_TIMER)
+#define GetTime()      (*(volatile unsigned int *)IO_TIMER)
+#define UartBusy()     (*(volatile unsigned int *)IO_UART_CTR & (1 << 9))
+#define UartSend(x)    (*(volatile unsigned int *)IO_UART_DAT = (x))
 
 #define HALT()         for (;;)

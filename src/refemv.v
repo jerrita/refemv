@@ -157,6 +157,23 @@ wire [`BUS] mem_load = mem_byteacc ? {{24{load_sign}}, load_byte} :
                        mem_rdata;
 
 assign mem_rstrb = (state == INSTR_FETCH) || (state == EXECUTE && isLoad);
+
+// xx00:
+//      byte: 0x000000ff
+//      half: 0x0000ffff
+//      word: 0xffffffff
+// xx01:
+//      byte: 0x0000ff00
+//      half: 0x0000ffff
+//      word: 0xffffffff
+// xx10:
+//      byte: 0x00ff0000
+//      half: 0xffff0000
+//      word: 0xffffffff
+// xx11:
+//      byte: 0xff000000
+//      half: 0xffff0000
+//      word: 0xffffffff
 assign mem_wdata[7:0] = rs2d[7:0];
 assign mem_wdata[15:8] = mem_addr[0] ? rs2d[7:0] : rs2d[15:8];
 assign mem_wdata[23:16] = mem_addr[1] ? rs2d[7:0] : rs2d[23:16];
