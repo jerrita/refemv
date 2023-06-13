@@ -1,13 +1,7 @@
   .org 0x0
   .global __start
 __start:
+  nop
   xor a0, a0, a0
-  li a1, 30
-  li a2, 120
-cmp:
-  add a0, a0, a1
-  blt a0, a2, cmp
-  # test mem here
-  # lw a0, 4(zero)
-loop:
-  j loop
+  // Copy program (1MB) from flash to SPRAM
+  // flash: 0x80000000, spram: 0x90000000

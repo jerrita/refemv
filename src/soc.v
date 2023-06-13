@@ -30,16 +30,22 @@ wire isIO = mem_addr[22];
 wire isMem = ~isIO;
 wire mem_wstrb = |wmask;
 
+reg [`BUS] timer;
+initial timer = 0;
+
 // Memory-mapped IO, 1-hot encoded
 localparam IO_LED_bit = 0;
 localparam IO_UartDat_bit = 1;
 localparam IO_UartCntl_bit = 2;
 localparam IO_Switch_bit = 3;
+localparam IO_Timer = 4;
 
 wire uart_valid = isIO && mem_wstrb && mem_wordaddr[IO_UartDat_bit];
 wire uart_ready;
+
 wire [31:0] io_rdata = mem_wordaddr[IO_UartCntl_bit] ? { 22'b0, !uart_ready, 9'b0} :
                        mem_wordaddr[IO_Switch_bit] ? { 24'b0, SW3[1:8] } :
+                       mem_wordaddr[IO_Timer] ? timer :
                        32'b0;
 
 emitter_uart #(
@@ -55,6 +61,8 @@ emitter_uart #(
 );
 
 always @(posedge clk) begin
+    timer <= timer + 1;
+
     if (isIO && mem_wstrb && mem_wordaddr[IO_LED_bit]) begin
         LED <= ~(mem_wdata[7:0]);
     end

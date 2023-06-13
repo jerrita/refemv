@@ -21,7 +21,7 @@ data: bin/instr.S
 cdata: bin/prog.c
 	clang -target riscv32 -march=rv32i -o build/entry.o -c bin/prog.S
 	clang -target riscv32 -march=rv32i -o build/prog.o -c bin/prog.c
-	ld.lld -Tbin/ram.ld build/entry.o build/prog.o -o build/prog.elf
+	ld.lld -Tbin/ram.ld build/entry.o build/prog.o -o build/prog.elf -L./res -lgcc
 	llvm-readobj -a build/prog.elf > build/prog.header
 	llvm-objdump -d build/prog.elf > build/prog.asm
 	llvm-objcopy -O binary build/prog.elf build/prog.bin
